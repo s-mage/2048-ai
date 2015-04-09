@@ -21,19 +21,8 @@
   "Nature moves and player moves, returns list of boards."
   (distinct (apply concat (map #(vals (player-moves %)) (nature-moves board)))))
 
-; (defn scored-one-step-forward [board]
-;   "Nature moves and player moves, returns list of boards."
-;   (let [nested-moves (map #(vals (player-moves %)) (nature-moves board))]
-;     (distinct (map #(min (map score %)) nested-moves))))
-
-(defn two-steps-forward [board]
-  (distinct (apply concat (map one-step-forward (one-step-forward board)))))
-
 (defn moves-results [board]
   (reduce #(conj %1 {(key %2) (score (val %2))}) {} (possible-moves board)))
-
-(defn next-move [board]
-  (key (apply min-key val (moves-results board))))
 
 (defn win? [board]
   (boolean (some #{2048} [board])))
@@ -73,12 +62,16 @@
      (lose-score board)))
 
 (defn board->score [board]
-  "Get min score for direction in minimax procedure"
+  "Get min score for direction in next 2 moves"
   (let [moves (one-step-forward board)
         scores (map score moves)]
     (apply min scores)))
 
-(defn minimax [board]
+; Simply choose best next move.
+; (defn next-move [board]
+;   (key (apply min-key val (moves-results board))))
+
+(defn next-move [board]
   "User move, then nature move, then user move again.
   Choose direction on which final score will be min"
   (let [score-fun (if (< (apply max board) 128) score #(+ (board->score %) (score %)))
@@ -87,7 +80,6 @@
 
 (defn move! []
   (c/move (minimax @c/board-state) (om/root-cursor c/board-state)))
-
 
 (defn play! []
   (while (not (gameover? @c/board-state))
