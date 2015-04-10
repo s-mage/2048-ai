@@ -3,7 +3,7 @@
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [cljs.core.async :refer [put! chan <!]]
-            [dommy.core :as dommy]
+            [dommy.core :as dommy :refer-macros [sel1]]
             [twentyfortyeight-ai.ai :as ai]
             [twentyfortyeight-ai.game :as g]))
 
@@ -11,6 +11,7 @@
 
 (def board-state (atom (g/init-board)))
 (def message-state (atom {:msg nil}))
+(def auto-state (atom nil))
 
 (def keycodes {37 :left ;; keycodes with vi mode!
                38 :up
@@ -36,13 +37,28 @@
                     (put! ch k)
                     (.preventDefault %))))
 
-(dommy/listen! (. js/document (getElementById "move"))
+(dommy/listen! (sel1 :#move)
                  :click
                  #(ai/move! board-state))
 
-(dommy/listen! (. js/document (getElementById "moves"))
+(dommy/listen! (sel1 :#moves)
                  :click
                  #(dotimes [n 20] (ai/move! board-state)))
+
+(defn kill-auto-game []
+  (js/clearInterval @auto-state)
+  (reset! auto-state nil))
+
+(defn start-auto-game []
+  (reset! auto-state (js/setInterval #(ai/move! board-state) 1500))) 
+
+(defn auto-game-callback []
+  (if (.-checked (sel1 :#auto)) (kill-auto-game))
+  (if @auto-state (kill-auto-game) (start-auto-game)))
+
+(dommy/listen! (sel1 "#auto")
+                 :change
+                 auto-game-callback)
 
 (key-listener key-ch)
 
@@ -96,14 +112,6 @@
 ; Attach to DOM
 ;
 
-(om/root score-board
-         board-state
-         {:target (. js/document (getElementById "score"))})
-
-(om/root message
-         message-state
-         {:target (. js/document (getElementById "message"))})
-
-(om/root game-board
-         board-state
-         {:target (. js/document (getElementById "game"))})
+(om/root score-board board-state   {:target (sel1 :#game)})
+(om/root message     message-state {:target (sel1 :#message)})
+(om/root game-board  board-state   {:target (sel1 :#game)})

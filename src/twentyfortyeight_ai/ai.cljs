@@ -31,9 +31,7 @@
   (let [corners [0 3 12 15]
         el (apply max board)
         els-in-corners (map board corners)]
-    (if (some #{el} els-in-corners)
-      1.5
-      1)))
+    (if (some #{el} els-in-corners) 1.5 1)))
 
 (defn lose-score [board]
   (if (g/loser? board) 0.01 1))
