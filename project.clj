@@ -1,6 +1,6 @@
 (defproject twentyfortyeight-ai "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+  :description "AI for 2048"
+  :url "https://github.com/s-mage/2048-ai"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
@@ -8,7 +8,6 @@
                  [org.clojure/clojurescript "0.0-2850"]
                  [figwheel "0.2.5"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [sablono "0.3.4"]
                  [org.omcljs/om "0.8.8"]
                  [prismatic/dommy "1.0.0"]]
 

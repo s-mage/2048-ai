@@ -1,6 +1,7 @@
 (ns twentyfortyeight-ai.dev
     (:require
      [twentyfortyeight-ai.core]
+     [twentyfortyeight-ai.ai]
      [figwheel.client :as fw]))
 
 (fw/start {
