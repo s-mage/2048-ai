@@ -1,6 +1,6 @@
 (ns twentyfortyeight-ai.ai
   (:require [twentyfortyeight-ai.game :as g]
-            [om.core :as om :include-macros true]))
+            [twentyfortyeight-ai.timemachine :as tm]))
 
 (declare score)
 
@@ -25,7 +25,7 @@
   (reduce + (map one-line-score (partition 4 v))))
 
 (defn empty-score [board]
-  (+ 1 (count (filter nil? board))))
+  (+ 1 (Math/pow (count (filter nil? board)) 2)))
 
 (defn max-in-corner-score [board]
   (let [corners [0 3 12 15]
@@ -60,7 +60,7 @@
     (key (apply min-key val nmr))))
 
 (defn move! [cursor]
-  (g/move (next-move @cursor) (om/root-cursor cursor)))
+  (tm/move! (next-move @cursor)))
 
 (defn gameover? [board]
   (or (g/winner? board) (g/loser? board)))

@@ -5,12 +5,11 @@
             [cljs.core.async :refer [put! chan <!]]
             [dommy.core :as dommy :refer-macros [sel1]]
             [twentyfortyeight-ai.ai :as ai]
+            [twentyfortyeight-ai.timemachine :as tm]
             [twentyfortyeight-ai.game :as g]))
 
 (enable-console-print!)
 
-(def board-state (atom (g/init-board)))
-(def message-state (atom {:msg nil}))
 (def auto-state (atom nil))
 
 (def keycodes {37 :left ;; keycodes with vi mode!
@@ -39,18 +38,18 @@
 
 (dommy/listen! (sel1 :#move)
                  :click
-                 #(ai/move! board-state))
+                 #(ai/move! g/board-state))
 
 (dommy/listen! (sel1 :#moves)
                  :click
-                 #(dotimes [n 20] (ai/move! board-state)))
+                 #(dotimes [n 20] (ai/move! g/board-state)))
 
 (defn kill-auto-game []
   (js/clearInterval @auto-state)
   (reset! auto-state nil))
 
 (defn start-auto-game []
-  (reset! auto-state (js/setInterval #(ai/move! board-state) 1500))) 
+  (reset! auto-state (js/setInterval #(ai/move! g/board-state) 1500))) 
 
 (defn auto-game-callback []
   (if (.-checked (sel1 :#auto)) (kill-auto-game))
@@ -59,6 +58,14 @@
 (dommy/listen! (sel1 "#auto")
                  :change
                  auto-game-callback)
+
+(dommy/listen! (sel1 "#undo")
+                 :click
+                 tm/undo!)
+
+(dommy/listen! (sel1 "#redo")
+                 :click
+                 tm/redo!)
 
 (key-listener key-ch)
 
@@ -77,9 +84,9 @@
   (reify
     om/IRender
     (render [_]
-      (dom/h1 #js {:display (if (:msg app)
+      (dom/h1 #js {:display (if (g/msg app)
                               "block"
-                              "none")} (:msg app)))))
+                              "none")} (g/msg app)))))
 
 (defn score-board [app owner]
   "An Om component representing the score board."
@@ -96,12 +103,8 @@
       (let [keypresses key-ch]
         (go (loop []
               (let [direction (<! keypresses)]
-                (g/move direction app)
+                (tm/move! direction)
                 (recur))))))
-    om/IWillUpdate
-    (will-update [this next-state next-props]
-      (when (g/winner? next-state) (swap! message-state assoc :msg "Winner!"))
-      (when (g/loser? next-state) (swap! message-state assoc :msg "Loser!")))
     om/IRender
     (render [this]
       (let [rows (partition 4 (map render-block app))]
@@ -111,7 +114,6 @@
 
 ; Attach to DOM
 ;
-
-(om/root score-board board-state   {:target (sel1 :#game)})
-(om/root message     message-state {:target (sel1 :#message)})
-(om/root game-board  board-state   {:target (sel1 :#game)})
+(om/root score-board g/board-state {:target (sel1 :#score)})
+(om/root message     g/board-state {:target (sel1 :#message)})
+(om/root game-board  g/board-state {:target (sel1 :#game)})

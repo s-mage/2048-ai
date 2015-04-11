@@ -1,6 +1,7 @@
 (ns twentyfortyeight-ai.game
   (:require [om.core :as om :include-macros true]))
 
+(declare winner? loser?)
 (def not-nil? (complement nil?))
 
 (defn randomize-start []
@@ -21,14 +22,26 @@
         coll (vec (repeat 16 nil))]
     (assoc coll x 2 y 2)))
 
+(def board-state (atom (init-board)))
+
 (defn get-open [coll]
   "Returns the indices of all zero items in a collection."
   (map first (filter #(nil? (second %)) (map-indexed vector coll))))
 
-(def num->score (reduce #(let [x (Math/pow 2 (+ %2 1))] (conj %1 {x (* x %2)})) {} (range 11)))
+(def num->score
+  (reduce
+    #(let [x (Math/pow 2 (+ %2 1))] (conj %1 {x (* x %2)}))
+    {}
+    (range 11)))
 
 (defn score [atom-board]
   (reduce + (map num->score (filter not-nil? @atom-board))))
+
+(defn msg [atom-board]
+  (cond
+    (winner? @atom-board) "Winner!"
+    (loser?  @atom-board) "Loser!"
+    :else nil))
 
 (defn choose-random [coll]
   "Given a vector, chooses a random element."
@@ -52,19 +65,11 @@
         xs (map #(nth coll %) edge)]
     (boolean (some nil? xs))))
 
-(defn pad-with-nils [coll]
-  "A helper function to ensure coll has 4 elements.  Pads with
-  nils if less than 4."
-  (take 4 (concat coll (repeat nil))))
-
 (defn combine [xs ys]
   "Given two collections of non-nil elements,
   recursively combines them according to the game rules.
-
   Example:
-  [] [2 2 4 8]
-
-  ;; => [4 4 8]
+  [] [2 2 4 8] ;=> [4 4 8]
   "
   (let [x (first ys)
         y (second ys)]
@@ -74,6 +79,11 @@
         (combine (conj xs x) (drop 1 ys)))
       xs)))
 
+(defn pad-with-nils [coll]
+  "A helper function to ensure coll has 4 elements.  Pads with
+  nils if less than 4."
+  (take 4 (concat coll (repeat nil))))
+
 (defn combine-row [coll]
   "A helper function to take a collection representing a
   game row, filter out nil elements, combine the tiles where
@@ -82,8 +92,12 @@
         combined (combine [] filtered)]
     (pad-with-nils combined)))
 
-(defn combine-rows [coll-of-colls]
-  (map combine-row coll-of-colls))
+(defn combine-reversed-row [coll]
+  (reverse (combine-row (reverse coll))))
+
+(defn combine-rows [coll-of-colls reverse?]
+  (let [combine-fn (if reverse? combine-reversed-row combine-row)]
+    (map combine-fn coll-of-colls)))
 
 (defn rearrange-rows [coll-of-colls]
   "Creates a new collection with all nil elements at the end of each coll"
@@ -91,8 +105,7 @@
     (map pad-with-nils not-nils)))
 
 (defn position-rows [coll vertical]
-  "Partitions the rows in the correct orientation depending upon
-  the direction."
+  "Partitions the rows in the correct orientation depending upon the direction."
   (if vertical
     (->> coll
          (partition 4)
@@ -105,8 +118,7 @@
   (or (= direction :up) (= direction :down)))
 
 (defn slide? [direction]
-  "Pred for determining if we need to put the nils before the
-  non-nils."
+  "Pred for determining if we need to put the nils before the non-nils."
   (or (= direction :right) (= direction :down)))
 
 (defn slide [coll]
@@ -116,10 +128,11 @@
 
 (defn arrange-and-combine [coll direction]
   (let [should-slide (slide? direction)
-        colls (-> coll
+        colls (combine-rows
+                (-> coll
                   (position-rows (vertical-rows? direction))
-                  rearrange-rows
-                  combine-rows)]
+                  rearrange-rows)
+                should-slide)]
     (if should-slide
       (map slide colls)
       colls)))
