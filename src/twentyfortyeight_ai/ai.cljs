@@ -25,7 +25,7 @@
   (reduce + (map one-line-score (partition 4 v))))
 
 (defn empty-score [board]
-  (+ 1 (Math/pow (count (filter nil? board)) 2)))
+  (+ 1 (Math/pow (count (filter nil? board)) 3)))
 
 (defn max-in-corner-score [board]
   (let [corners [0 3 12 15]
@@ -36,9 +36,13 @@
 (defn lose-score [board]
   (if (g/loser? board) 0.01 1))
 
+(defn game-score-delta [old new]
+  (let [r (- (g/score (atom new)) (g/score (atom old)))]
+    (/ (if (> r 0) (Math/log2 r) 0.5) 10)))
+
 (defn score [board]
   (/ (+ (subscore board) (subscore (transpose board)))
-     (empty-score board)
+     (game-score-delta @g/board-state board)
      (max-in-corner-score board)
      (lose-score board)))
 
